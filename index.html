@@ -895,106 +895,169 @@ MW.icon = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="non
 
     /* ---------------- Store ---------------- */
     const Store = {
-        backend: null, state: null, subs: new Set(), _t: null,
-        init(backend) {
-    this.backend = backend || MW.Backend;
+    backend: null,
+    state: null,
+    subs: new Set(),
+    _t: null,
 
-    if (!this.backend.get('control')) {
-        this.backend.set('control', MW.freshControl());
-    }
+    init(backend) {
+        this.backend = backend || MW.Backend;
 
-    // IMPORTANT: build state before subscribers are allowed to render
-    this._compose();
-
-    this.backend.subscribe(() => this._schedule());
-
-    return this;
-},
-        _schedule() { if (this._t) return; this._t = setTimeout(() => { this._t = null; this._compose(); this.subs.forEach(f => { try { f(this.state); } catch (e) { console.error(e); } }); }, 16); },
-        _compose() {
-    const b = this.backend;
-
-    if (!b) {
-        this.state = null;
-        return;
-    }
-
-    const control = Object.assign(
-        {},
-        MW.freshControl(),
-        b.get('control') || {}
-    );
-
-    if (!Array.isArray(control.departmentsUnlocked)) {
-        control.departmentsUnlocked = [];
-    }
-
-    const participants = b.list('participants/');
-    const rawVotes = b.list('votes/');
-    const votes = {};
-
-    Object.keys(rawVotes).forEach(k => {
-        const [cid, pid] = k.split('/');
-        (votes[cid] = votes[cid] || {})[pid] = rawVotes[k];
-    });
-
-    const sim = Object.assign({
-        demoCount: 0,
-        demoConnected: 0,
-        simVotes: {}
-    }, b.get('sim') || {});
-
-    const registrations = b.list('registrations/');
-
-    this.state = {
-        control,
-        participants,
-        votes,
-        sim,
-        registrations
-    };
-},
-
-if (!Array.isArray(control.departmentsUnlocked)) {
-    control.departmentsUnlocked = [];
-}
-            const participants = b.list('participants/');
-            const rawVotes = b.list('votes/');
-            const votes = {};
-            Object.keys(rawVotes).forEach(k => { const [cid, pid] = k.split('/'); (votes[cid] = votes[cid] || {})[pid] = rawVotes[k]; });
-            const sim = b.get('sim') || { demoCount: 0, demoConnected: 0, simVotes: {} };
-            const registrations = b.list('registrations/');
-            this.state = { control, participants, votes, sim, registrations };
-        },
-        subscribe(fn) {
-    this.subs.add(fn);
-
-    if (!this.state && this.backend) {
-        this._compose();
-    }
-
-    if (this.state) {
-        try {
-            fn(this.state);
-        } catch (e) {
-            console.error(e);
+        if (!this.backend) {
+            return this;
         }
-    }
 
-    return () => this.subs.delete(fn);
-},
-        get() { return this.state; },
-        patch(fn) {
-            const cur = this.backend.get('control') || MW.freshControl();
-            const next = Object.assign({}, cur, fn(cur) || {});
-            next.rev = (cur.rev || 0) + 1;
-            this.backend.set('control', next);
-        },
-        patchSim(fn) {
-            const cur = this.backend.get('sim') || { demoCount: 0, demoConnected: 0, simVotes: {} };
-            this.backend.set('sim', Object.assign({}, cur, fn(cur) || {}));
-        },
-    };
+        if (!this.backend.get('control')) {
+            this.backend.set('control', MW.freshControl());
+        }
+
+        // Build the first state BEFORE any component subscribes.
+        this._compose();
+
+        this.backend.subscribe(() => this._schedule());
+
+        return this;
+    },
+
+    _schedule() {
+        if (this._t) return;
+
+        this._t = setTimeout(() => {
+            this._t = null;
+
+            this._compose();
+
+            this.subs.forEach(fn => {
+                try {
+                    if (this.state) {
+                        fn(this.state);
+                    }
+                } catch (e) {
+                    console.error(e);
+                }
+            });
+        }, 16);
+    },
+
+    _compose() {
+        const b = this.backend;
+
+        // Backend isn't ready yet.
+        if (!b) {
+            this.state = null;
+            return;
+        }
+
+        const control = Object.assign(
+            {},
+            MW.freshControl(),
+            b.get('control') || {}
+        );
+
+        if (!Array.isArray(control.departmentsUnlocked)) {
+            control.departmentsUnlocked = [];
+        }
+
+        const participants = b.list('participants/');
+
+        const rawVotes = b.list('votes/');
+        const votes = {};
+
+        Object.keys(rawVotes).forEach(k => {
+            const [cid, pid] = k.split('/');
+
+            if (!votes[cid]) {
+                votes[cid] = {};
+            }
+
+            votes[cid][pid] = rawVotes[k];
+        });
+
+        const sim = Object.assign({
+            demoCount: 0,
+            demoConnected: 0,
+            simVotes: {}
+        }, b.get('sim') || {});
+
+        const registrations = b.list('registrations/');
+
+        this.state = {
+            control,
+            participants,
+            votes,
+            sim,
+            registrations
+        };
+    },
+
+    subscribe(fn) {
+        this.subs.add(fn);
+
+        // If state hasn't been created yet, only compose when
+        // the backend is actually available.
+        if (!this.state && this.backend) {
+            this._compose();
+        }
+
+        if (this.state) {
+            try {
+                fn(this.state);
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        return () => this.subs.delete(fn);
+    },
+
+    get() {
+        return this.state;
+    },
+
+    patch(fn) {
+        if (!this.backend) return;
+
+        const cur = Object.assign(
+            {},
+            MW.freshControl(),
+            this.backend.get('control') || {}
+        );
+
+        if (!Array.isArray(cur.departmentsUnlocked)) {
+            cur.departmentsUnlocked = [];
+        }
+
+        const next = Object.assign(
+            {},
+            cur,
+            fn(cur) || {}
+        );
+
+        if (!Array.isArray(next.departmentsUnlocked)) {
+            next.departmentsUnlocked = [];
+        }
+
+        next.rev = (cur.rev || 0) + 1;
+
+        this.backend.set('control', next);
+    },
+
+    patchSim(fn) {
+        if (!this.backend) return;
+
+        const cur = Object.assign({
+            demoCount: 0,
+            demoConnected: 0,
+            simVotes: {}
+        }, this.backend.get('sim') || {});
+
+        this.backend.set(
+            'sim',
+            Object.assign({}, cur, fn(cur) || {})
+        );
+    }
+};
+
     MW.Store = Store;
 
     /* ---------------- derived helpers ---------------- */
