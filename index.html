@@ -912,12 +912,48 @@ MW.icon = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="non
 },
         _schedule() { if (this._t) return; this._t = setTimeout(() => { this._t = null; this._compose(); this.subs.forEach(f => { try { f(this.state); } catch (e) { console.error(e); } }); }, 16); },
         _compose() {
-            const b = this.backend;
-            const control = Object.assign(
-    {},
-    MW.freshControl(),
-    b.get('control') || {}
-);
+    const b = this.backend;
+
+    if (!b) {
+        this.state = null;
+        return;
+    }
+
+    const control = Object.assign(
+        {},
+        MW.freshControl(),
+        b.get('control') || {}
+    );
+
+    if (!Array.isArray(control.departmentsUnlocked)) {
+        control.departmentsUnlocked = [];
+    }
+
+    const participants = b.list('participants/');
+    const rawVotes = b.list('votes/');
+    const votes = {};
+
+    Object.keys(rawVotes).forEach(k => {
+        const [cid, pid] = k.split('/');
+        (votes[cid] = votes[cid] || {})[pid] = rawVotes[k];
+    });
+
+    const sim = Object.assign({
+        demoCount: 0,
+        demoConnected: 0,
+        simVotes: {}
+    }, b.get('sim') || {});
+
+    const registrations = b.list('registrations/');
+
+    this.state = {
+        control,
+        participants,
+        votes,
+        sim,
+        registrations
+    };
+},
 
 if (!Array.isArray(control.departmentsUnlocked)) {
     control.departmentsUnlocked = [];
@@ -933,8 +969,7 @@ if (!Array.isArray(control.departmentsUnlocked)) {
         subscribe(fn) {
     this.subs.add(fn);
 
-    // Store may not have composed its first state yet.
-    if (!this.state) {
+    if (!this.state && this.backend) {
         this._compose();
     }
 
