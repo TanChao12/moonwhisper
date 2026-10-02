@@ -2445,39 +2445,34 @@ MW.icon = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="non
     }
 
     // Reactive wrapper for Participant view to auto-sync when Host advances
+    // Reactive wrapper for Participant view to auto-sync when Host advances
     function playWrapper(root) {
         let instance = null;
         let lastKey = null;
 
         function render(state) {
             const c = (state && state.control) || {};
-
-            // Watch the ENTIRE control object for changes made by the Host
-            // (This catches whatever 'ADVANCE' modifies: scene, page, index, step, etc.)
             const watchState = { ...c };
-            delete watchState.demoConnected; // Exclude this so UI doesn't refresh if demo users join
+            delete watchState.demoConnected;
 
             const currentKey = JSON.stringify(watchState);
 
             if (currentKey !== lastKey) {
                 lastKey = currentKey;
 
-                // Destroy old instance to prevent memory leaks
                 if (instance && typeof instance.destroy === 'function') {
                     try { instance.destroy(); } catch (e) { }
                 }
 
-                // Mount fresh instance with the new host state
                 root.innerHTML = '';
                 instance = MW.ParticipantApp(root);
             }
         }
 
-        // 1. Render immediately on load
         render(MW.Store.get());
 
-        // 2. Subscribe to all future Host updates
-        const unsub = MW.Store.sub(newState => render(newState));
+        // CHANGED FROM .sub() TO .subscribe()
+        const unsub = MW.Store.subscribe(newState => render(newState));
 
         return {
             destroy() {
