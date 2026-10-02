@@ -2465,7 +2465,6 @@ MW.icon = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="non
     }
 
     // Safe backend initialization
-    // Safe backend initialization
     function initBackend() {
         let backend = null;
 
@@ -2486,17 +2485,6 @@ MW.icon = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="non
 
     // Initial attempt (uses BroadcastBackend as fallback until Firebase module resolves)
     initBackend();
-
-    // Automatically re-render the current view when backend state updates from host or Firebase
-    if (MW.Store && typeof MW.Store.subscribe === 'function') {
-        MW.Store.subscribe(() => {
-            const name = (location.hash.replace(/^#\/?/, '').split(/[/?]/)[0] || '').toLowerCase();
-            // If they are on a live screen (play, master, host, rehearsal), re-trigger route to sync views instantly
-            if (name && current) {
-                route();
-            }
-        });
-    }
 
     window.addEventListener('hashchange', route);
     route();
