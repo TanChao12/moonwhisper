@@ -906,7 +906,11 @@ MW.icon = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="non
         _schedule() { if (this._t) return; this._t = setTimeout(() => { this._t = null; this._compose(); this.subs.forEach(f => { try { f(this.state); } catch (e) { console.error(e); } }); }, 16); },
         _compose() {
             const b = this.backend;
-            const control = b.get('control') || MW.freshControl();
+            const control = Object.assign(
+    {},
+    MW.freshControl(),
+    b.get('control') || {}
+);
             const participants = b.list('participants/');
             const rawVotes = b.list('votes/');
             const votes = {};
@@ -1883,7 +1887,10 @@ MW.icon = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="non
       if (!silent) $('.pp-main').scrollTop = 0;
     }
     function header(s) {
-      const c = s.control, n = c.departmentsUnlocked.length;
+      const c = s.control || {};
+const n = Array.isArray(c.departmentsUnlocked)
+    ? c.departmentsUnlocked.length
+    : 0;
       const label = RANK[c.status] < 3 ? 'BRIEFING' : c.status === 'COMPLETED' ? 'CASE CLOSED' : c.currentCase === 8 ? 'FINAL CASE' : `CASE <b>${MW.pad(c.currentCase)}</b> / 07`;
       $('.pp-prog .c').innerHTML = label;
       $('.pp-phases').innerHTML = MW.phaseRow(n, 18);
@@ -2477,7 +2484,7 @@ MW.icon = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="non
         render(MW.Store.get());
 
         // 2. Subscribe to all future Host updates
-        const unsub = MW.Store.sub(newState => render(newState));
+       const unsub = MW.Store.subscribe(newState => render(newState));
 
         return {
             destroy() {
