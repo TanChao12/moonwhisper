@@ -897,12 +897,19 @@ MW.icon = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="non
     const Store = {
         backend: null, state: null, subs: new Set(), _t: null,
         init(backend) {
-            this.backend = backend || MW.Backend;
-            if (!this.backend.get('control')) this.backend.set('control', MW.freshControl());
-            this.backend.subscribe(() => this._schedule());
-            this._compose();
-            return this;
-        },
+    this.backend = backend || MW.Backend;
+
+    if (!this.backend.get('control')) {
+        this.backend.set('control', MW.freshControl());
+    }
+
+    // IMPORTANT: build state before subscribers are allowed to render
+    this._compose();
+
+    this.backend.subscribe(() => this._schedule());
+
+    return this;
+},
         _schedule() { if (this._t) return; this._t = setTimeout(() => { this._t = null; this._compose(); this.subs.forEach(f => { try { f(this.state); } catch (e) { console.error(e); } }); }, 16); },
         _compose() {
             const b = this.backend;
@@ -911,6 +918,10 @@ MW.icon = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="non
     MW.freshControl(),
     b.get('control') || {}
 );
+
+if (!Array.isArray(control.departmentsUnlocked)) {
+    control.departmentsUnlocked = [];
+}
             const participants = b.list('participants/');
             const rawVotes = b.list('votes/');
             const votes = {};
@@ -919,7 +930,24 @@ MW.icon = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="non
             const registrations = b.list('registrations/');
             this.state = { control, participants, votes, sim, registrations };
         },
-        subscribe(fn) { this.subs.add(fn); fn(this.state); return () => this.subs.delete(fn); },
+        subscribe(fn) {
+    this.subs.add(fn);
+
+    // Store may not have composed its first state yet.
+    if (!this.state) {
+        this._compose();
+    }
+
+    if (this.state) {
+        try {
+            fn(this.state);
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    return () => this.subs.delete(fn);
+},
         get() { return this.state; },
         patch(fn) {
             const cur = this.backend.get('control') || MW.freshControl();
