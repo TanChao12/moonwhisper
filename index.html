@@ -597,8 +597,8 @@ MW.EVENT = {
   nameEn: 'MOON WHISPERS',
   org: '第四十七届中秋文娱晚会 · 推介礼',
   date: '05.10.2026 · 6:00 PM',
-  venue: 'Auditorium Siswa Fusanika, UKM Bangi',
-  project: 'PROJECT 071',
+  venue: 'Auditorium Siswa Pusanika, UKM Bangi',
+  project: 'PROJECT 047',
 };
 
 /* ---------- departments ---------- */
@@ -760,7 +760,7 @@ MW.INTRO_LOG = [
   { at: 22.4, t: '⚠ SYSTEM ALERT', cls: 'warn' },
   { at: 23.2, t: 'ANOMALY DETECTED', cls: 'warn' },
   { at: 24.2, t: '7 DEPARTMENTS AFFECTED', cls: 'warn' },
-  { at: 27.6, t: 'PROJECT 071', cls: 'gold' },
+  { at: 27.6, t: 'PROJECT 047', cls: 'gold' },
   { at: 28.4, t: 'INVESTIGATION PROTOCOL ACTIVATED', cls: 'gold' },
 ];
 
@@ -2444,10 +2444,41 @@ MW.icon = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="non
         return { destroy() { m.destroy(); p.destroy(); h.destroy(); root.innerHTML = ''; } };
     }
 
+    // Reactive wrapper for Participant view to auto-sync when Host advances
+    function playWrapper(root) {
+        let instance = MW.ParticipantApp(root);
+        let lastKey = '';
+
+        const unsub = MW.Store.sub(state => {
+            const c = (state && state.control) || {};
+            const currentKey = `${c.status || ''}_${c.step || 0}_${c.caseId || ''}`;
+
+            // Re-render participant interface whenever host advances status or step
+            if (currentKey !== lastKey) {
+                lastKey = currentKey;
+                if (instance && typeof instance.destroy === 'function') {
+                    try { instance.destroy(); } catch (e) { }
+                }
+                root.innerHTML = '';
+                instance = MW.ParticipantApp(root);
+            }
+        });
+
+        return {
+            destroy() {
+                if (typeof unsub === 'function') unsub();
+                if (instance && typeof instance.destroy === 'function') {
+                    try { instance.destroy(); } catch (e) { }
+                }
+                root.innerHTML = '';
+            }
+        };
+    }
+
     const ROUTES = {
         '': launcher,
         master: r => MW.MasterDisplay(r),
-        play: r => MW.ParticipantApp(r),
+        play: playWrapper,
         host: r => MW.HostControls(r),
         rehearsal,
     };
