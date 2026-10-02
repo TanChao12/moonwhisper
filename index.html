@@ -2446,6 +2446,7 @@ MW.icon = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="non
 
     // Reactive wrapper for Participant view to auto-sync when Host advances
     // Reactive wrapper for Participant view to auto-sync when Host advances
+    // Reactive wrapper for Participant view to auto-sync when Host advances
     function playWrapper(root) {
         let instance = null;
         let lastKey = null;
@@ -2471,7 +2472,7 @@ MW.icon = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="non
 
         render(MW.Store.get());
 
-        // CHANGED FROM .sub() TO .subscribe()
+        // MUST BE .subscribe() HERE:
         const unsub = MW.Store.subscribe(newState => render(newState));
 
         return {
