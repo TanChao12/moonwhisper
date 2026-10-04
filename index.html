@@ -1870,8 +1870,8 @@ MW.icon = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="non
       <div class="rc-top"><div class="t">Join the story.</div><div class="s">调查结束了。但你的故事，才刚刚开始。</div></div>
       <div class="rc-grid">${MW.DEPT_ORDER.map(id => { const d = MW.DEPTS[id]; return `<div class="rc-cell">${MW.icon(d.icon)}<div class="nm ${d.latin ? 'latin' : ''}">${E(d.zh)}</div><div class="en">${E(d.en)}</div></div>`; }).join('')}
         <div class="rc-cell" style="display:flex;align-items:flex-end"><div class="zh" style="font-size:44px;font-weight:900">月缘</div></div></div>
-      <div class="rc-side"><div class="qr-box"></div><div class="l">在手机上选择你的部门</div><div class="n"><span class="rn">0</span> REGISTERED</div></div>`;
-    MW.makeQR(el.querySelector('.qr-box'), MW.playURL());
+      <div class="rc-side"><div class="qr-box"><img src="images/zhaomu.jpg" alt="QR Code" style="width:100%;height:100%;object-fit:contain;"></div><div class="l">在手机上选择你的部门</div><div class="n"><span class="rn"></span> REGISTER</div></div>`;
+    //MW.makeQR(el.querySelector('.qr-box'), MW.playURL());
     gsap.from('.rc-top > *', { opacity: 0, y: 20, duration: 1.4, stagger: .4, ease: 'power2.out' });
     gsap.from('.rc-cell', { opacity: 0, duration: 1, stagger: .12, delay: .8 });
     gsap.from('.rc-side', { opacity: 0, duration: 1.2, delay: 1.6 });
