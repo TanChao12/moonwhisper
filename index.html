@@ -959,19 +959,8 @@ MW.icon = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="non
         }
 
         const participants = b.list('participants/');
-
-        const rawVotes = b.list('votes/');
-        const votes = {};
-
-        Object.keys(rawVotes).forEach(k => {
-            const [cid, pid] = k.split('/');
-
-            if (!votes[cid]) {
-                votes[cid] = {};
-            }
-
-            votes[cid][pid] = rawVotes[k];
-        });
+        //update vote
+        const votes = b.list('votes/');
 
         const sim = Object.assign({
             demoCount: 0,
