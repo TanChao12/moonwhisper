@@ -1197,11 +1197,61 @@ MW.icon = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="non
             return me;
         },
         vote(caseId, k) {
-            const me = MW.Me.get(); const c = Store.get().control;
-            if (!me || c.status !== 'VOTING' || c.currentCase !== caseId) return false;
-            Store.backend.set('votes/' + caseId + '/' + me.id, { k, t: Date.now() });
-            return true;
-        },
+    try {
+        const me = MW.Me.get();
+        const s = Store.get();
+        const c = s && s.control;
+
+        console.log('[MW VOTE]', {
+            me,
+            caseId,
+            selected: k,
+            status: c && c.status,
+            currentCase: c && c.currentCase,
+            backend: Store.backend?.constructor?.name
+        });
+
+        if (!me) {
+            console.error('[MW VOTE] No participant identity');
+            return false;
+        }
+
+        if (!c) {
+            console.error('[MW VOTE] No control state');
+            return false;
+        }
+
+        if (c.status !== 'VOTING') {
+            console.error('[MW VOTE] Event is not in VOTING:', c.status);
+            return false;
+        }
+
+        if (Number(c.currentCase) !== Number(caseId)) {
+            console.error('[MW VOTE] Case mismatch:', c.currentCase, caseId);
+            return false;
+        }
+
+        if (!Store.backend) {
+            console.error('[MW VOTE] Backend is missing');
+            return false;
+        }
+
+        const path = `votes/${caseId}/${me.id}`;
+
+        Store.backend.set(path, {
+            k: k,
+            t: Date.now()
+        });
+
+        console.log('[MW VOTE] Written:', path, k);
+
+        return true;
+
+    } catch (err) {
+        console.error('[MW VOTE] FAILED:', err);
+        return false;
+    }
+},
         myVote(s, caseId) { const me = MW.Me.get(); return me && s.votes[caseId] && s.votes[caseId][me.id] ? s.votes[caseId][me.id].k : null; },
         register(data) { const me = MW.Me.get(); if (!me) return; Store.backend.set('registrations/' + me.id, Object.assign({ id: me.id, at: Date.now() }, data)); },
     };
@@ -2163,7 +2213,25 @@ const n = Array.isArray(c.departmentsUnlocked)
         const sub = main.querySelector('.sub');
         if (sub) sub.onclick = () => {
           if (!sel) return;
-          if (MW.Me.vote(cs.id, sel)) { justVoted = true; sub.disabled = true; sub.textContent = 'SENDING…'; setTimeout(() => { liveKey = null; renderLive(MW.Store.get()); animateCheck(); }, 120); }
+          const ok = MW.Me.vote(cs.id, sel);
+
+if (ok) {
+    justVoted = true;
+    sub.disabled = true;
+    sub.textContent = 'SENDING…';
+
+    setTimeout(() => {
+        liveKey = null;
+        renderLive(MW.Store.get());
+        animateCheck();
+    }, 120);
+} else {
+    console.error('[MW VOTE] Vote rejected');
+    sub.textContent = 'TRY AGAIN';
+    setTimeout(() => {
+        sub.textContent = 'SUBMIT RESPONSE';
+    }, 1500);
+}
         };
       }
       if (c.status === 'UNLOCK') {
