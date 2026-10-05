@@ -2713,7 +2713,7 @@ if (ok) {
     }
 
     // Safe backend initialization
-    /*function initBackend() {
+    function initBackend() {
         let backend = null;
 
         // Ensure both window.db and window.dbRef exist before trying to create FirebaseBackend
@@ -2726,23 +2726,7 @@ if (ok) {
         if (backend) {
             MW.Store.init(backend);
         }
-    }*/
-    let firebaseInitialized = false;
-
-function initBackend() {
-    if (firebaseInitialized) return;
-
-    if (
-        window.db &&
-        typeof window.dbRef === 'function' &&
-        typeof MW.FirebaseBackend === 'function'
-    ) {
-        firebaseInitialized = true;
-
-        const backend = new MW.FirebaseBackend();
-        MW.Store.init(backend);
     }
-}
 
     // Expose initBackend on global MW so index.template.html can trigger it when Firebase finishes loading
     MW.initBackend = initBackend;
