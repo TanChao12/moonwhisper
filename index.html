@@ -1488,7 +1488,7 @@ MW.icon = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="non
         <div class="calm">Everything appears normal.</div>
       </div>
       <div class="in-alert"><div class="a1">SYSTEM ALERT</div><div class="a2">ANOMALY DETECTED</div><div class="a3">7 DEPARTMENTS AFFECTED</div></div>
-      <div class="in-proj"><div class="p1">PROJECT 071</div><div class="p2">INVESTIGATION PROTOCOL ACTIVATED</div></div>
+      <div class="in-proj"><div class="p1">PROJECT 047</div><div class="p2">INVESTIGATION PROTOCOL ACTIVATED</div></div>
       <div class="glitch-bar" style="top:320px"></div><div class="glitch-bar" style="top:610px;height:6px"></div><div class="glitch-bar" style="top:840px;height:22px"></div>`;
     const q = s => el.querySelector(s), qa = s => el.querySelectorAll(s);
     gsap.set(['.in-title', '.in-line', '.in-sys', '.in-alert', '.in-proj', '.in-sys .srow', '.in-sys .calm', '.in-sys .head', '.in-alert > div', '.in-proj > div'].map(s => el.querySelectorAll(s)), { opacity: 0 });
@@ -2337,7 +2337,7 @@ if (ok) {
       if (tab === 'messages') {
         const items = [];
         const r = RANK[c.status];
-        if (r >= 1) items.push({ sys: true, t: 'PROJECT 071 · INVESTIGATION PROTOCOL ACTIVATED' });
+        if (r >= 1) items.push({ sys: true, t: 'PROJECT 047 · INVESTIGATION PROTOCOL ACTIVATED' });
         if (r >= 2) {
           const sch = MW.chatSchedule(), el = r === 2 ? MW.elapsed(c) : 1e9;
           sch.msgs.forEach(x => { if (x.at <= el) items.push({ w: x.msg.t + ' · ' + x.msg.from, t: x.msg.text }); });
