@@ -640,7 +640,7 @@ MW.DEPTS = {
     icon: 'spot', variant: 'stage', pace: 'fast',
   },
   fenxiao: {
-    id: 'fenxiao', zh: '分校与展览品组', en: 'CONNECTORS & CURATORS',
+    id: 'fenxiao', zh: '分校事务与展览组', en: 'CONNECTORS & CURATORS',
     keywords: ['分校联络', '物资运送', '展览布置', '展品管理'],
     desc: '把月光带到每一个校区，把每件展品放在对的位置。',
     recruit: '分校联络、物资运送与展览布置。连接每一个地方。',
@@ -705,14 +705,14 @@ MW.CASES = [
     id: 6, code: 'CASE 06', title: '送不出去的资料', titleEn: 'The Undelivered',
     brief: ['活动资料需要送去分校。', '展览品还没有整理完成。'],
     question: '这件事，该交给谁？',
-    options: [{ k: 'A', label: '编辑组' }, { k: 'B', label: '礼仪组' }, { k: 'C', label: '分校与展览品组' }, { k: 'D', label: '技术组' }],
+    options: [{ k: 'A', label: '编辑组' }, { k: 'B', label: '礼仪组' }, { k: 'C', label: '分校事务与展览组' }, { k: 'D', label: '技术组' }],
     correct: 'C', department: 'fenxiao', visualType: 'map',
     simBias: { A: .10, B: .08, C: .76, D: .06 },
   },
   {
-    id: 7, code: 'CASE 07', title: '我们到底想说什么？', titleEn: 'The Unspoken Message',
+    id: 7, code: 'CASE 07', title: '我们到底在算什么？', titleEn: 'The Hidden Ledger',
     brief: ['一切看起来都准备好了。', '但是：'],
-    quoteEn: '“So... what exactly are we trying to tell everyone?”',
+    quoteEn: '“So... what are we actually funding with all these numbers?”',
     question: '谁来回答这个问题？',
     options: [{ k: 'A', label: '宣传组' }, { k: 'B', label: '财务组' }, { k: 'C', label: '编辑组' }, { k: 'D', label: '节目组' }],
     correct: 'B', department: 'marketing', visualType: 'message',
@@ -738,7 +738,7 @@ MW.CHAT = [
   { t: '09:04', from: '礼仪组', text: '嘉宾名单也有问题。' },
   { t: '09:05', from: '技术组', text: '谁把最终版 PPT 删除了？' },
   { t: '09:06', from: '编辑组', text: '我这里有一个版本。' },
-  { t: '09:07', from: '分校与展览品组', text: '我们收到的资料好像也是旧的。' },
+  { t: '09:07', from: '分校事务与展览组', text: '我们收到的资料好像也是旧的。' },
 ];
 MW.CHAT_TIMING = { start: 1.4, typing: 1.1, gap: 1.0 };
 /* returns [{at, msg}] + system times; shared by master & phones so they stay in sync */
@@ -1624,7 +1624,7 @@ MW.icon = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="non
         <div class="ev-row" style="border:0"><span>EXHIBITS SORTED</span><b>14 / 31</b></div>
       </div>`,
     message: cs => `
-      <div class="ev-msg"><div class="ev-label">EVIDENCE · UNSENT MESSAGE</div><div class="quote">${E(cs.quoteEn)}<span class="cursor"></span></div><div class="ghosts"><span>主题？</span><span>受众？</span><span>讯息？</span></div></div>`,
+      <div class="ev-msg"><div class="ev-label">EVIDENCE · UNSENT MESSAGE</div><div class="quote">${E(cs.quoteEn)}<span class="cursor"></span></div><div class="ghosts"><span>预算？</span><span>成本？</span><span>代价？</span></div></div>`,
   };
 
   /* CASE (generic) */
