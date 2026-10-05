@@ -811,41 +811,67 @@ MW.icon = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="non
 
     /* ---------------- FirebaseBackend: Realtime Database Adapter ---------------- */
     class FirebaseBackend {
-    constructor() {
-        this.cache = {};
-        this.listeners = new Set();
-        this.ready = false;
+        constructor() {
+            this.cache = {};
+            this.listeners = new Set();
 
-        const rootRef = window.dbRef(window.db, 'mw1');
+            // Listen to the entire 'mw1' root node for real-time changes
+            const rootRef = window.dbRef(window.db, 'mw1');
+            window.dbOnValue(rootRef, (snapshot) => {
+                this.cache = snapshot.val() || {};
+                this._emit();
+            });
+        }
 
-        window.dbOnValue(rootRef, (snapshot) => {
-            this.cache = snapshot.val() || {};
-            this.ready = true;
-
-            // Only create the event AFTER Firebase has loaded
-            // the existing database state.
-            if (!this.cache.control) {
-                this.cache.control = MW.freshControl();
-
-                window.dbSet(
-                    window.dbRef(window.db, 'mw1/control'),
-                    this.cache.control
-                );
-
-                this.cache.sim = {
-                    demoCount: 0,
-                    demoConnected: 0,
-                    simVotes: {}
-                };
-
-                window.dbSet(
-                    window.dbRef(window.db, 'mw1/sim'),
-                    this.cache.sim
-                );
+        _resolvePath(path) {
+            const parts = path.split('/').filter(Boolean);
+            let curr = this.cache;
+            for (const p of parts) {
+                if (curr == null) return null;
+                curr = curr[p];
             }
+            return curr;
+        }
 
-            this._emit();
-        });
+        get(path) {
+            return this._resolvePath(path) ?? null;
+        }
+
+        set(path, value) {
+            window.dbSet(window.dbRef(window.db, 'mw1/' + path), value);
+        }
+
+        remove(path) {
+            window.dbRemove(window.dbRef(window.db, 'mw1/' + path));
+        }
+
+        list(prefix) {
+            const cleanPrefix = prefix.endsWith('/') ? prefix.slice(0, -1) : prefix;
+            const data = this._resolvePath(cleanPrefix);
+            const out = {};
+
+            if (data && typeof data === 'object') {
+                Object.keys(data).forEach(k => {
+                    out[k] = data[k];
+                });
+            }
+            return out;
+        }
+
+        clear() {
+            window.dbSet(window.dbRef(window.db, 'mw1'), null);
+        }
+
+        subscribe(cb) {
+            this.listeners.add(cb);
+            return () => this.listeners.delete(cb);
+        }
+
+        _emit() {
+            this.listeners.forEach(cb => {
+                try { cb(); } catch (e) { console.error(e); }
+            });
+        }
     }
     MW.FirebaseBackend = FirebaseBackend;
 
@@ -881,30 +907,9 @@ MW.icon = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="non
             return this;
         }
 
-        // Firebase loads asynchronously.
-// Do NOT create a new session here.
-if (this.backend.ready === false) {
-        this.backend.subscribe(() => {
-            if (!this.backend.ready) return;
-
-            this._compose();
-
-            this.subs.forEach(fn => {
-                try {
-                    if (this.state) fn(this.state);
-                } catch (e) {
-                    console.error(e);
-                }
-            });
-        });
-
-        return this;
-    }
-
-// Build state when backend is already ready.
-//this._compose();
-
-//this.backend.subscribe(() => this._schedule());
+        if (!this.backend.get('control')) {
+            this.backend.set('control', MW.freshControl());
+        }
 
         // Build the first state BEFORE any component subscribes.
         this._compose();
@@ -1164,20 +1169,7 @@ if (this.backend.ready === false) {
 
     /* ---------------- participant actions ---------------- */
     const ID_KEY = 'mw1-identity';
-   const idStore = (() => {
-    try {
-        localStorage.setItem('mw1-t', '1');
-        localStorage.removeItem('mw1-t');
-        return localStorage;
-    } catch (e) {
-        const m = {};
-        return {
-            getItem: k => m[k] || null,
-            setItem: (k, v) => m[k] = v,
-            removeItem: k => delete m[k]
-        };
-    }
-})();
+    const idStore = (() => { try { sessionStorage.setItem('mw1-t', '1'); sessionStorage.removeItem('mw1-t'); return sessionStorage; } catch (e) { const m = {}; return { getItem: k => m[k] || null, setItem: (k, v) => m[k] = v, removeItem: k => delete m[k] }; } })();
     MW.Me = {
         get() {
             try {
@@ -2643,7 +2635,7 @@ if (ok) {
     }
 
     // Reactive wrapper for Participant view to auto-sync when Host advances
-    /*function playWrapper(root) {
+    function playWrapper(root) {
         let instance = null;
         let lastKey = null;
 
@@ -2686,11 +2678,7 @@ if (ok) {
                 root.innerHTML = '';
             }
         };
-    }*/
-
-    function playWrapper(root) {
-    return MW.ParticipantApp(root);
-}
+    }
 
     const ROUTES = {
         '': launcher,
