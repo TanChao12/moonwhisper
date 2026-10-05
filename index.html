@@ -812,16 +812,44 @@ MW.icon = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="non
     /* ---------------- FirebaseBackend: Realtime Database Adapter ---------------- */
     class FirebaseBackend {
         constructor() {
-            this.cache = {};
-            this.listeners = new Set();
+    this.cache = {};
+    this.listeners = new Set();
+    this.ready = false;
 
-            // Listen to the entire 'mw1' root node for real-time changes
-            const rootRef = window.dbRef(window.db, 'mw1');
-            window.dbOnValue(rootRef, (snapshot) => {
-                this.cache = snapshot.val() || {};
-                this._emit();
-            });
+    const rootRef = window.dbRef(window.db, 'mw1');
+
+    window.dbOnValue(rootRef, (snapshot) => {
+        this.cache = snapshot.val() || {};
+        this.ready = true;
+
+        // Only create a new event if Firebase is genuinely empty.
+        if (!this.cache.control) {
+            const control = MW.freshControl();
+
+            this.cache.control = control;
+
+            window.dbSet(
+                window.dbRef(window.db, 'mw1/control'),
+                control
+            );
         }
+
+        if (!this.cache.sim) {
+            this.cache.sim = {
+                demoCount: 0,
+                demoConnected: 0,
+                simVotes: {}
+            };
+
+            window.dbSet(
+                window.dbRef(window.db, 'mw1/sim'),
+                this.cache.sim
+            );
+        }
+
+        this._emit();
+    });
+}
 
         _resolvePath(path) {
             const parts = path.split('/').filter(Boolean);
@@ -901,23 +929,39 @@ MW.icon = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="non
     _t: null,
 
     init(backend) {
-        this.backend = backend || MW.Backend;
+    this.backend = backend || MW.Backend;
 
-        if (!this.backend) {
-            return this;
-        }
+    if (!this.backend) {
+        return this;
+    }
 
-        if (!this.backend.get('control')) {
-            this.backend.set('control', MW.freshControl());
-        }
+    // Firebase must finish loading before building the state.
+    if (this.backend.ready === false) {
+        const waitForFirebase = () => {
+            if (!this.backend.ready) return;
 
-        // Build the first state BEFORE any component subscribes.
-        this._compose();
+            this._compose();
 
-        this.backend.subscribe(() => this._schedule());
+            this.subs.forEach(fn => {
+                try {
+                    if (this.state) fn(this.state);
+                } catch (e) {
+                    console.error(e);
+                }
+            });
+        };
+
+        this.backend.subscribe(waitForFirebase);
 
         return this;
-    },
+    }
+
+    this._compose();
+
+    this.backend.subscribe(() => this._schedule());
+
+    return this;
+},
 
     _schedule() {
         if (this._t) return;
@@ -1169,7 +1213,20 @@ MW.icon = (name, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="non
 
     /* ---------------- participant actions ---------------- */
     const ID_KEY = 'mw1-identity';
-    const idStore = (() => { try { sessionStorage.setItem('mw1-t', '1'); sessionStorage.removeItem('mw1-t'); return sessionStorage; } catch (e) { const m = {}; return { getItem: k => m[k] || null, setItem: (k, v) => m[k] = v, removeItem: k => delete m[k] }; } })();
+    const idStore = (() => {
+    try {
+        localStorage.setItem('mw1-t', '1');
+        localStorage.removeItem('mw1-t');
+        return localStorage;
+    } catch (e) {
+        const m = {};
+        return {
+            getItem: k => m[k] || null,
+            setItem: (k, v) => m[k] = v,
+            removeItem: k => delete m[k]
+        };
+    }
+})();
     MW.Me = {
         get() {
             try {
@@ -2701,20 +2758,22 @@ if (ok) {
     }
 
     // Safe backend initialization
-    function initBackend() {
-        let backend = null;
+    let firebaseBackendStarted = false;
 
-        // Ensure both window.db and window.dbRef exist before trying to create FirebaseBackend
-        if (window.db && typeof window.dbRef === 'function' && typeof MW.FirebaseBackend === 'function') {
-            backend = new MW.FirebaseBackend();
-        } else if (typeof MW.BroadcastBackend === 'function') {
-            backend = new MW.BroadcastBackend();
-        }
+function initBackend() {
+    if (firebaseBackendStarted) return;
 
-        if (backend) {
-            MW.Store.init(backend);
-        }
+    if (
+        window.db &&
+        typeof window.dbRef === 'function' &&
+        typeof MW.FirebaseBackend === 'function'
+    ) {
+        firebaseBackendStarted = true;
+
+        const backend = new MW.FirebaseBackend();
+        MW.Store.init(backend);
     }
+}
 
     // Expose initBackend on global MW so index.template.html can trigger it when Firebase finishes loading
     MW.initBackend = initBackend;
